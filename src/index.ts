@@ -14,20 +14,25 @@ const client = new messagingApi.MessagingApiClient({
 });
 
 app.post('/webhook', lineMiddleware, async (req, res) => {
-  const events: webhook.Event[] = req.body.events;
-  await Promise.all(
-    events.map(async (event) => {
-      if (event.type !== 'message' || event.message.type !== 'text') return;
-      const text = (event.message as webhook.TextMessageContent).text.trim();
-      if (!text.startsWith('/price')) return;
-      const reply = await handlePriceCommand(text);
-      await client.replyMessage({
-        replyToken: (event as webhook.MessageEvent).replyToken!,
-        messages: [{ type: 'text', text: reply }],
-      });
-    }),
-  );
-  res.json({ ok: true });
+  try {
+    const events: webhook.Event[] = req.body.events;
+    await Promise.all(
+      events.map(async (event) => {
+        if (event.type !== 'message' || event.message.type !== 'text') return;
+        const text = (event.message as webhook.TextMessageContent).text.trim();
+        if (!text.startsWith('/price')) return;
+        const reply = await handlePriceCommand(text);
+        await client.replyMessage({
+          replyToken: (event as webhook.MessageEvent).replyToken!,
+          messages: [{ type: 'text', text: reply }],
+        });
+      }),
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('webhook error', err);
+    res.status(500).json({ ok: false });
+  }
 });
 
 const port = Number(process.env.PORT ?? 3000);
