@@ -1,4 +1,4 @@
-import { getLatestSnapshot, PriceSnapshot, Mode } from './firebase';
+import { getLatestSnapshot, getTrackedItems, PriceSnapshot, Mode } from './firebase';
 
 export interface ParsedCommand {
   item: string;
@@ -7,19 +7,21 @@ export interface ParsedCommand {
 }
 
 export function parseCommand(text: string): ParsedCommand | null {
-  const rest = text.slice('/price'.length).trim();
+  const prefix = text.startsWith('/price') ? '/price' : '/p';
+  const rest = text.slice(prefix.length).trim();
   if (!rest) return null;
 
   const tokens = rest.split(/\s+/);
   const lower = tokens.map((t) => t.toLowerCase());
-  const ladder = lower.includes('ladder');
+  const nonladder = lower.includes('nonladder');
   const hc = lower.includes('hc');
 
-  const itemTokens = tokens.filter((_, i) => lower[i] !== 'ladder' && lower[i] !== 'hc');
-  const item = itemTokens.join(' ').trim();
+  const itemTokens = tokens.filter((_, i) => lower[i] !== 'ladder' && lower[i] !== 'nonladder' && lower[i] !== 'hc');
+  let item = itemTokens.join(' ').trim();
   if (!item) return null;
+  if (itemTokens.length === 1) item = `${item} Rune`;
 
-  return { item, mode: hc ? 'hc' : 'sc', ladder };
+  return { item, mode: hc ? 'hc' : 'sc', ladder: !nonladder };
 }
 
 function tsToStr(ts?: { _seconds: number }): string {
@@ -64,14 +66,30 @@ export function formatResponse(
   ].join('\n');
 }
 
+export const HELP_TEXT = `📖 D2R Rune Price Bot 指令說明
+
+/p <符文> — 查詢符文價格（預設 Ladder SC）
+/p <符文> hc — Hardcore
+/p <符文> nonladder — Non-Ladder
+/p <符文> hc nonladder — HC Non-Ladder
+
+範例：
+  /p ber
+  /p JAH hc
+  /p Sur nonladder
+
+符文名稱不分大小寫`;
+
 export async function handlePriceCommand(text: string): Promise<string> {
   const parsed = parseCommand(text);
   if (!parsed) {
-    return '用法：/price <物品名稱> [hc] [ladder]\n例如：/price ber rune ladder';
+    return '用法：/price <物品名稱> [hc] [nonladder]\n例如：/price ber rune';
   }
   try {
-    const snapshot = await getLatestSnapshot(parsed.item, parsed.ladder, parsed.mode);
-    return formatResponse(parsed.item, parsed.ladder, parsed.mode, snapshot);
+    const items = await getTrackedItems();
+    const resolved = items.find((i) => i.toLowerCase() === parsed.item.toLowerCase()) ?? parsed.item;
+    const snapshot = await getLatestSnapshot(resolved, parsed.ladder, parsed.mode);
+    return formatResponse(resolved, parsed.ladder, parsed.mode, snapshot);
   } catch {
     return '查詢失敗，請稍後再試';
   }

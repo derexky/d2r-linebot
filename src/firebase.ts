@@ -23,6 +23,12 @@ function ensureInit() {
   if (!admin.apps.length) admin.initializeApp();
 }
 
+export async function getTrackedItems(): Promise<string[]> {
+  ensureInit();
+  const docs = await admin.firestore().collection('price_snapshots').listDocuments();
+  return docs.map((d) => d.id);
+}
+
 export async function getLatestSnapshot(
   item: string,
   ladder: boolean,

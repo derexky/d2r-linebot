@@ -2,36 +2,42 @@ import { parseCommand, formatResponse, handlePriceCommand } from '../src/price-h
 import { PriceSnapshot } from '../src/firebase';
 
 jest.mock('../src/firebase');
-import { getLatestSnapshot } from '../src/firebase';
+import { getLatestSnapshot, getTrackedItems } from '../src/firebase';
 const mockGetLatest = getLatestSnapshot as jest.MockedFunction<typeof getLatestSnapshot>;
+const mockGetTrackedItems = getTrackedItems as jest.MockedFunction<typeof getTrackedItems>;
 
 describe('parseCommand', () => {
-  it('parses item name only — defaults to sc non-ladder', () => {
-    expect(parseCommand('/price ber rune')).toEqual({ item: 'ber rune', mode: 'sc', ladder: false });
+  it('parses item name only — defaults to sc ladder', () => {
+    expect(parseCommand('/price ber rune')).toEqual({ item: 'ber rune', mode: 'sc', ladder: true });
   });
 
-  it('parses ladder flag', () => {
+  it('nonladder flag sets ladder=false', () => {
+    expect(parseCommand('/price ber rune nonladder')).toEqual({ item: 'ber rune', mode: 'sc', ladder: false });
+  });
+
+  it('ladder flag is ignored (default is already ladder)', () => {
     expect(parseCommand('/price ber rune ladder')).toEqual({ item: 'ber rune', mode: 'sc', ladder: true });
   });
 
   it('parses hc flag', () => {
-    expect(parseCommand('/price ber rune hc')).toEqual({ item: 'ber rune', mode: 'hc', ladder: false });
+    expect(parseCommand('/price ber rune hc')).toEqual({ item: 'ber rune', mode: 'hc', ladder: true });
   });
 
-  it('parses hc and ladder flags in either order', () => {
-    expect(parseCommand('/price ber rune hc ladder')).toEqual({ item: 'ber rune', mode: 'hc', ladder: true });
-    expect(parseCommand('/price ber rune ladder hc')).toEqual({ item: 'ber rune', mode: 'hc', ladder: true });
+  it('parses hc and nonladder flags in either order', () => {
+    expect(parseCommand('/price ber rune hc nonladder')).toEqual({ item: 'ber rune', mode: 'hc', ladder: false });
+    expect(parseCommand('/price ber rune nonladder hc')).toEqual({ item: 'ber rune', mode: 'hc', ladder: false });
   });
 
   it('returns null when no item remains after stripping flags', () => {
     expect(parseCommand('/price')).toBeNull();
-    expect(parseCommand('/price ladder')).toBeNull();
     expect(parseCommand('/price hc')).toBeNull();
-    expect(parseCommand('/price hc ladder')).toBeNull();
+    expect(parseCommand('/price nonladder')).toBeNull();
+    expect(parseCommand('/price hc nonladder')).toBeNull();
   });
 
-  it('handles single-word item', () => {
-    expect(parseCommand('/price jah')).toEqual({ item: 'jah', mode: 'sc', ladder: false });
+  it('single-word item gets " Rune" appended', () => {
+    expect(parseCommand('/price jah')).toEqual({ item: 'jah Rune', mode: 'sc', ladder: true });
+    expect(parseCommand('/p ber')).toEqual({ item: 'ber Rune', mode: 'sc', ladder: true });
   });
 });
 
@@ -109,7 +115,10 @@ describe('formatResponse', () => {
 });
 
 describe('handlePriceCommand', () => {
-  beforeEach(() => mockGetLatest.mockReset());
+  beforeEach(() => {
+    mockGetLatest.mockReset();
+    mockGetTrackedItems.mockReset();
+  });
 
   it('returns usage hint when no item name provided', async () => {
     const result = await handlePriceCommand('/price');
@@ -117,17 +126,25 @@ describe('handlePriceCommand', () => {
     expect(mockGetLatest).not.toHaveBeenCalled();
   });
 
-  it('calls getLatestSnapshot with parsed args and returns formatted result', async () => {
+  it('resolves item name case-insensitively', async () => {
+    mockGetTrackedItems.mockResolvedValue(['Ber Rune', 'Jah Rune']);
     mockGetLatest.mockResolvedValue({
       price: { count: 5, top: [{ items: [{ name: 'Jah', quantity: 1 }], freq: 3 }] },
     });
-    const result = await handlePriceCommand('/price ber rune ladder');
-    expect(mockGetLatest).toHaveBeenCalledWith('ber rune', true, 'sc');
+    const result = await handlePriceCommand('/price ber rune');
+    expect(mockGetLatest).toHaveBeenCalledWith('Ber Rune', true, 'sc');
     expect(result).toContain('#1  Jah — 3次');
   });
 
+  it('defaults to ladder=true', async () => {
+    mockGetTrackedItems.mockResolvedValue(['Ber Rune']);
+    mockGetLatest.mockResolvedValue({ price: { count: 1, top: [] } });
+    await handlePriceCommand('/price ber rune');
+    expect(mockGetLatest).toHaveBeenCalledWith('Ber Rune', true, 'sc');
+  });
+
   it('returns error message when Firebase throws', async () => {
-    mockGetLatest.mockRejectedValue(new Error('network'));
+    mockGetTrackedItems.mockRejectedValue(new Error('network'));
     const result = await handlePriceCommand('/price ber rune');
     expect(result).toBe('查詢失敗，請稍後再試');
   });
