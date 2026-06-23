@@ -19,6 +19,9 @@ export interface PriceSnapshot {
   };
 }
 
+const SNAPSHOT_CACHE = new Map<string, { data: PriceSnapshot | null; ts: number }>();
+const SNAPSHOT_TTL = 60 * 1000;
+
 function ensureInit() {
   if (!admin.apps.length) admin.initializeApp();
 }
@@ -34,8 +37,12 @@ export async function getLatestSnapshot(
   ladder: boolean,
   mode: Mode,
 ): Promise<PriceSnapshot | null> {
-  ensureInit();
   const combo = `${ladder ? 'ladder' : 'nonladder'}_${mode}`;
+  const key = `${item}|${combo}`;
+  const cached = SNAPSHOT_CACHE.get(key);
+  if (cached && Date.now() - cached.ts < SNAPSHOT_TTL) return cached.data;
+
+  ensureInit();
   const snap = await admin
     .firestore()
     .collection('price_snapshots')
@@ -44,6 +51,7 @@ export async function getLatestSnapshot(
     .orderBy('synced_at', 'desc')
     .limit(1)
     .get();
-  if (snap.empty) return null;
-  return snap.docs[0].data() as PriceSnapshot;
+  const data = snap.empty ? null : (snap.docs[0].data() as PriceSnapshot);
+  SNAPSHOT_CACHE.set(key, { data, ts: Date.now() });
+  return data;
 }
