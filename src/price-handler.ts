@@ -1,15 +1,5 @@
-import { getLatestSnapshot, getTrackedItems, PriceSnapshot, Mode } from './firebase';
-
-let cachedItems: string[] | null = null;
-let cacheTime = 0;
-const CACHE_TTL = 60 * 60 * 1000;
-
-async function getTrackedItemsCached(): Promise<string[]> {
-  if (cachedItems && Date.now() - cacheTime < CACHE_TTL) return cachedItems;
-  cachedItems = await getTrackedItems();
-  cacheTime = Date.now();
-  return cachedItems;
-}
+import { getLatestSnapshot, PriceSnapshot, Mode } from './firebase';
+import { TRACKED_ITEMS } from './tracked-items';
 
 export interface ParsedCommand {
   item: string;
@@ -97,8 +87,7 @@ export async function handlePriceCommand(text: string): Promise<string> {
     return '用法：/price <物品名稱> [hc] [nonladder]\n例如：/price ber rune';
   }
   try {
-    const items = await getTrackedItemsCached();
-    const resolved = items.find((i) => i.toLowerCase() === parsed.item.toLowerCase()) ?? parsed.item;
+    const resolved = TRACKED_ITEMS.find((i) => i.toLowerCase() === parsed.item.toLowerCase()) ?? parsed.item;
     const snapshot = await getLatestSnapshot(resolved, parsed.ladder, parsed.mode);
     return formatResponse(resolved, parsed.ladder, parsed.mode, snapshot);
   } catch {
