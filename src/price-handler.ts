@@ -2,7 +2,7 @@ import { getLatestSnapshot, getTrackedItems, PriceSnapshot, Mode } from './fireb
 
 let cachedItems: string[] | null = null;
 let cacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 60 * 60 * 1000;
 
 async function getTrackedItemsCached(): Promise<string[]> {
   if (cachedItems && Date.now() - cacheTime < CACHE_TTL) return cachedItems;

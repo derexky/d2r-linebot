@@ -20,7 +20,7 @@ export interface PriceSnapshot {
 }
 
 const SNAPSHOT_CACHE = new Map<string, { data: PriceSnapshot | null; ts: number }>();
-const SNAPSHOT_TTL = 60 * 1000;
+const SNAPSHOT_TTL = 10 * 60 * 1000;
 
 function ensureInit() {
   if (!admin.apps.length) admin.initializeApp();
