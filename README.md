@@ -34,7 +34,9 @@ npm run dev
 ## 部署
 
 ```bash
-gcloud run deploy d2r-linebot --source . --project=d2r-diablo --region=asia-east1 --no-allow-unauthenticated
+gcloud run deploy d2r-linebot --source . --project=d2r-diablo --region=asia-east1
+# 首次部署需設定：--update-env-vars TRADERIE_URL=https://traderie.derexky.com,TRADERIE_TOKEN=...
+# 不要加 --no-allow-unauthenticated，LINE webhook 需要公開存取
 ```
 
 ## 注意
