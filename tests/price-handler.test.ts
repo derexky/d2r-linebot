@@ -92,6 +92,20 @@ describe('formatResponse', () => {
     expect(result).toContain('Ladder HC');
   });
 
+  it('shows times relative to now, independent of server timezone', () => {
+    const now = 1749600000 * 1000 + 23 * 60000; // 23 minutes after synced_at
+    const result = formatResponse('Ber Rune', true, 'sc', snapshot, now);
+    expect(result).toContain('更新: 23 分鐘前');
+    expect(result).toContain('成交區間: 2 天前 – 23 分鐘前');
+  });
+
+  it('uses 剛剛 / hours for recent and same-day times', () => {
+    const s = { ...snapshot, trade_window: { earliest: { _seconds: 1749600000 - 5 * 3600 }, latest: { _seconds: 1749600000 } } };
+    const result = formatResponse('Ber Rune', true, 'sc', s, 1749600000 * 1000 + 30000);
+    expect(result).toContain('更新: 剛剛');
+    expect(result).toContain('成交區間: 5 小時前 – 剛剛');
+  });
+
   it('caps entries at 10', () => {
     const bigSnap: PriceSnapshot = {
       price: {

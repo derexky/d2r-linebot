@@ -25,14 +25,14 @@ export function parseCommand(text: string): ParsedCommand | null {
   return { item, mode: hc ? 'hc' : 'sc', ladder: !nonladder };
 }
 
-function tsToStr(ts?: { _seconds: number }): string {
+// Relative time: LINE doesn't tell us the user's timezone, and Cloud Run runs in UTC
+function ago(ts: { _seconds: number } | undefined, now: number): string {
   if (!ts) return '—';
-  return new Date(ts._seconds * 1000).toLocaleString('zh-TW', {
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const min = Math.floor((now - ts._seconds * 1000) / 60000);
+  if (min < 1) return '剛剛';
+  if (min < 60) return `${min} 分鐘前`;
+  if (min < 24 * 60) return `${Math.floor(min / 60)} 小時前`;
+  return `${Math.floor(min / (24 * 60))} 天前`;
 }
 
 export function formatResponse(
@@ -40,6 +40,7 @@ export function formatResponse(
   ladder: boolean,
   mode: Mode,
   snapshot: PriceSnapshot | null,
+  now = Date.now(),
 ): string {
   if (!snapshot) {
     const combo = `${ladder ? 'ladder' : 'non-ladder'} ${mode.toUpperCase()}`;
@@ -59,11 +60,11 @@ export function formatResponse(
 
   return [
     `📊 ${item} | ${modeLabel}`,
-    `樣本: ${count} 筆 | 更新: ${tsToStr(snapshot.synced_at)}`,
+    `樣本: ${count} 筆 | 更新: ${ago(snapshot.synced_at, now)}`,
     '',
     ...lines,
     '',
-    `成交區間: ${tsToStr(snapshot.trade_window?.earliest)} – ${tsToStr(snapshot.trade_window?.latest)}`,
+    `成交區間: ${ago(snapshot.trade_window?.earliest, now)} – ${ago(snapshot.trade_window?.latest, now)}`,
   ].join('\n');
 }
 
