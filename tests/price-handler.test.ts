@@ -2,9 +2,8 @@ import { parseCommand, formatResponse, handlePriceCommand } from '../src/price-h
 import { PriceSnapshot } from '../src/firebase';
 
 jest.mock('../src/firebase');
-import { getLatestSnapshot, getTrackedItems } from '../src/firebase';
+import { getLatestSnapshot } from '../src/firebase';
 const mockGetLatest = getLatestSnapshot as jest.MockedFunction<typeof getLatestSnapshot>;
-const mockGetTrackedItems = getTrackedItems as jest.MockedFunction<typeof getTrackedItems>;
 
 describe('parseCommand', () => {
   it('parses item name only — defaults to sc ladder', () => {
@@ -117,7 +116,6 @@ describe('formatResponse', () => {
 describe('handlePriceCommand', () => {
   beforeEach(() => {
     mockGetLatest.mockReset();
-    mockGetTrackedItems.mockReset();
   });
 
   it('returns usage hint when no item name provided', async () => {
@@ -127,7 +125,6 @@ describe('handlePriceCommand', () => {
   });
 
   it('resolves item name case-insensitively', async () => {
-    mockGetTrackedItems.mockResolvedValue(['Ber Rune', 'Jah Rune']);
     mockGetLatest.mockResolvedValue({
       price: { count: 5, top: [{ items: [{ name: 'Jah', quantity: 1 }], freq: 3 }] },
     });
@@ -137,14 +134,13 @@ describe('handlePriceCommand', () => {
   });
 
   it('defaults to ladder=true', async () => {
-    mockGetTrackedItems.mockResolvedValue(['Ber Rune']);
     mockGetLatest.mockResolvedValue({ price: { count: 1, top: [] } });
     await handlePriceCommand('/price ber rune');
     expect(mockGetLatest).toHaveBeenCalledWith('Ber Rune', true, 'sc');
   });
 
-  it('returns error message when Firebase throws', async () => {
-    mockGetTrackedItems.mockRejectedValue(new Error('network'));
+  it('returns error message when the price lookup throws', async () => {
+    mockGetLatest.mockRejectedValue(new Error('network'));
     const result = await handlePriceCommand('/price ber rune');
     expect(result).toBe('查詢失敗，請稍後再試');
   });

@@ -5,7 +5,7 @@
 ## 功能
 
 - 接收 LINE Webhook，解析 `/p` 或 `/price` 指令
-- 從 Firestore 讀取價格快照並回傳格式化結果
+- 從 d2r-traderie API 讀取價格快照並回傳格式化結果
 - 支援 Ladder / Non-Ladder、SC / HC 四種模式
 
 ## 指令
@@ -21,7 +21,7 @@
 ## 技術棧
 
 - **語言**：TypeScript + Express
-- **資料庫**：Firestore（Firebase Admin SDK）
+- **資料來源**：d2r-traderie `GET /api/prices/latest`（`TRADERIE_URL`，預設 `http://localhost:7432`）
 - **部署**：Cloud Run（asia-east1）
 
 ## 開發
