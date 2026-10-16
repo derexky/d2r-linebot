@@ -22,6 +22,19 @@ export interface PriceSnapshot {
 const SNAPSHOT_CACHE = new Map<string, { data: PriceSnapshot | null; ts: number }>();
 const SNAPSHOT_TTL = 10 * 60 * 1000;
 
+// Tracked items with price data, managed in d2r-traderie (via d2r-admin)
+let trackedCache: { data: string[]; ts: number } | null = null;
+
+export async function getTrackedItems(): Promise<string[]> {
+  if (trackedCache && Date.now() - trackedCache.ts < SNAPSHOT_TTL) return trackedCache.data;
+  const res = await fetch(`${TRADERIE_URL}/api/prices/items`, {
+    headers: { 'x-api-token': process.env.TRADERIE_TOKEN ?? '' },
+  });
+  if (!res.ok) throw new Error(`traderie items: HTTP ${res.status}`);
+  trackedCache = { data: (await res.json()) as string[], ts: Date.now() };
+  return trackedCache.data;
+}
+
 export async function getLatestSnapshot(
   item: string,
   ladder: boolean,

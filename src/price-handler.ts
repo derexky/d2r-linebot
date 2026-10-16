@@ -1,5 +1,4 @@
-import { getLatestSnapshot, PriceSnapshot, Mode } from './firebase';
-import { TRACKED_ITEMS } from './tracked-items';
+import { getLatestSnapshot, getTrackedItems, PriceSnapshot, Mode } from './firebase';
 
 export interface ParsedCommand {
   item: string;
@@ -88,7 +87,7 @@ export async function handlePriceCommand(text: string): Promise<string> {
     return '用法：/price <物品名稱> [hc] [nonladder]\n例如：/price ber rune';
   }
   try {
-    const resolved = TRACKED_ITEMS.find((i) => i.toLowerCase() === parsed.item.toLowerCase()) ?? parsed.item;
+    const resolved = (await getTrackedItems()).find((i) => i.toLowerCase() === parsed.item.toLowerCase()) ?? parsed.item;
     const snapshot = await getLatestSnapshot(resolved, parsed.ladder, parsed.mode);
     return formatResponse(resolved, parsed.ladder, parsed.mode, snapshot);
   } catch {

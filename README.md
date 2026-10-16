@@ -41,4 +41,4 @@ gcloud run deploy d2r-linebot --source . --project=d2r-diablo --region=asia-east
 
 ## 注意
 
-`src/tracked-items.ts` 與 `d2r-traderie` 的同名檔案需保持同步，新增追蹤物品時兩邊都要更新。
+追蹤物品清單由 d2r-traderie 管理（d2r-admin「TR 價格追蹤物品」頁），bot 透過 `/api/prices/items` 取得，不用另外同步。

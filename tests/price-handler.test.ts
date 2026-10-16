@@ -2,7 +2,7 @@ import { parseCommand, formatResponse, handlePriceCommand } from '../src/price-h
 import { PriceSnapshot } from '../src/firebase';
 
 jest.mock('../src/firebase');
-import { getLatestSnapshot } from '../src/firebase';
+import { getLatestSnapshot, getTrackedItems } from '../src/firebase';
 const mockGetLatest = getLatestSnapshot as jest.MockedFunction<typeof getLatestSnapshot>;
 
 describe('parseCommand', () => {
@@ -130,6 +130,7 @@ describe('formatResponse', () => {
 describe('handlePriceCommand', () => {
   beforeEach(() => {
     mockGetLatest.mockReset();
+    (getTrackedItems as jest.MockedFunction<typeof getTrackedItems>).mockResolvedValue(['Ber Rune']);
   });
 
   it('returns usage hint when no item name provided', async () => {
