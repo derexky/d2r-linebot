@@ -69,24 +69,37 @@ describe('formatList', () => {
 });
 
 describe('resolveItem', () => {
-  const names = { 'Ber Rune': '貝', Shako: '諧角之冠', Enigma: '謎團' };
+  const names = {
+    'Ber Rune': '貝',
+    Shako: '諧角之冠',
+    Enigma: '謎團',
+    'Stone of Jordan': '喬丹之石',
+    "Highlord's Wrath": '大君之怒',
+    'Measured Wrath': '審慎之怒',
+  };
 
   it('matches English names case-insensitively', () => {
-    expect(resolveItem('shako', names)).toBe('Shako');
-    expect(resolveItem('BER RUNE', names)).toBe('Ber Rune');
+    expect(resolveItem('shako', names)).toEqual(['Shako']);
+    expect(resolveItem('BER RUNE', names)).toEqual(['Ber Rune']);
   });
 
   it('matches Chinese names', () => {
-    expect(resolveItem('謎團', names)).toBe('Enigma');
-    expect(resolveItem('貝', names)).toBe('Ber Rune');
+    expect(resolveItem('謎團', names)).toEqual(['Enigma']);
+    expect(resolveItem('貝', names)).toEqual(['Ber Rune']);
   });
 
   it('appends Rune for rune names', () => {
-    expect(resolveItem('ber', names)).toBe('Ber Rune');
+    expect(resolveItem('ber', names)).toEqual(['Ber Rune']);
   });
 
-  it('returns untracked names as typed', () => {
-    expect(resolveItem('nope', names)).toBe('nope');
+  it('falls back to partial English or Chinese names', () => {
+    expect(resolveItem('喬丹', names)).toEqual(['Stone of Jordan']);
+    expect(resolveItem('JORDAN', names)).toEqual(['Stone of Jordan']);
+    expect(resolveItem('之怒', names)).toEqual(["Highlord's Wrath", 'Measured Wrath']);
+  });
+
+  it('returns nothing for unknown names', () => {
+    expect(resolveItem('nope', names)).toEqual([]);
   });
 });
 
@@ -202,6 +215,21 @@ describe('handlePriceCommand', () => {
     mockGetLatest.mockResolvedValue({ price: { count: 1, top: [] } });
     await handlePriceCommand('/price ber rune');
     expect(mockGetLatest).toHaveBeenCalledWith('Ber Rune', true, 'sc');
+  });
+
+  it('lists candidates when a partial name matches several items', async () => {
+    (getTrackedNames as jest.MockedFunction<typeof getTrackedNames>).mockResolvedValue({
+      "Highlord's Wrath": '大君之怒',
+      'Measured Wrath': '審慎之怒',
+    });
+    const result = await handlePriceCommand('/p 之怒');
+    expect(result).toBe("「之怒」符合多個物品，請輸入更完整的名稱：\n大君之怒 Highlord's Wrath\n審慎之怒 Measured Wrath");
+    expect(mockGetLatest).not.toHaveBeenCalled();
+  });
+
+  it('points to /l when nothing matches', async () => {
+    expect(await handlePriceCommand('/p nope')).toBe('找不到「nope」，輸入 /l 查看可查價物品');
+    expect(mockGetLatest).not.toHaveBeenCalled();
   });
 
   it('returns error message when the price lookup throws', async () => {

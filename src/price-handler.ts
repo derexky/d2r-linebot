@@ -80,7 +80,8 @@ export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 /p <物品> hc nl — HC Non-Ladder
 
 可查符文、符文之語、暗金裝備、咒符等追蹤物品。
-物品可用英文（不分大小寫）或中文名稱，符文可省略 Rune。
+物品可用英文（不分大小寫）或中文名稱，符文可省略 Rune，
+也可只打部分名稱（如 /p 喬丹、/p jordan）。
 
 範例：
   /p ber
@@ -107,18 +108,20 @@ export async function handleListCommand(): Promise<string> {
   }
 }
 
-// Tracked English name for what the user typed: English (any case), Chinese, or a rune without " Rune".
-// Untracked names are returned as typed and simply find no price data
-export function resolveItem(item: string, names: Record<string, string>): string {
+// Tracked English names matching what the user typed. A full English (any case) or Chinese name, or a rune
+// without " Rune", wins outright; otherwise every name whose English or Chinese contains the text
+export function resolveItem(item: string, names: Record<string, string>): string[] {
   const lower = item.toLowerCase();
   const en = Object.keys(names);
-  return (
+  const exact =
     en.find((n) => n.toLowerCase() === lower) ??
     en.find((n) => names[n] === item) ??
-    en.find((n) => n.toLowerCase() === `${lower} rune`) ??
-    item
-  );
+    en.find((n) => n.toLowerCase() === `${lower} rune`);
+  if (exact) return [exact];
+  return en.filter((n) => n.toLowerCase().includes(lower) || names[n].includes(item));
 }
+
+const MAX_CANDIDATES = 10;
 
 export async function handlePriceCommand(text: string): Promise<string> {
   const parsed = parseCommand(text);
@@ -126,7 +129,17 @@ export async function handlePriceCommand(text: string): Promise<string> {
     return '用法：/price <物品名稱> [hc] [nl]\n例如：/price ber rune';
   }
   try {
-    const resolved = resolveItem(parsed.item, await getTrackedNames());
+    const names = await getTrackedNames();
+    const matches = resolveItem(parsed.item, names);
+    if (!matches.length) return `找不到「${parsed.item}」，輸入 /l 查看可查價物品`;
+    if (matches.length > 1) {
+      return [
+        `「${parsed.item}」符合多個物品，請輸入更完整的名稱：`,
+        ...matches.slice(0, MAX_CANDIDATES).map((n) => `${names[n]} ${n}`),
+        ...(matches.length > MAX_CANDIDATES ? [`…等 ${matches.length} 個`] : []),
+      ].join('\n');
+    }
+    const resolved = matches[0];
     const snapshot = await getLatestSnapshot(resolved, parsed.ladder, parsed.mode);
     return formatResponse(resolved, parsed.ladder, parsed.mode, snapshot);
   } catch {
