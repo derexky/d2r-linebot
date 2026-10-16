@@ -88,6 +88,10 @@ describe('resolveItem', () => {
     expect(resolveItem('貝', names)).toEqual(['Ber Rune']);
   });
 
+  it('resolves trade abbreviations', () => {
+    expect(resolveItem('SOJ', names)).toEqual(['Stone of Jordan']);
+  });
+
   it('appends Rune for rune names', () => {
     expect(resolveItem('ber', names)).toEqual(['Ber Rune']);
   });

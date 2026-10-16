@@ -81,7 +81,8 @@ export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 
 可查符文、符文之語、暗金裝備、咒符等追蹤物品。
 物品可用英文（不分大小寫）或中文名稱，符文可省略 Rune，
-也可只打部分名稱（如 /p 喬丹、/p jordan）。
+也可只打部分名稱（如 /p 喬丹、/p jordan），
+或常見縮寫：cta coh hoto botd soj anni wf hoz wt。
 
 範例：
   /p ber
@@ -108,13 +109,28 @@ export async function handleListCommand(): Promise<string> {
   }
 }
 
-// Tracked English names matching what the user typed. A full English (any case) or Chinese name, or a rune
-// without " Rune", wins outright; otherwise every name whose English or Chinese contains the text
+// Common trade abbreviations that partial matching can't find (lowercase → traderie English name)
+const ALIASES: Record<string, string> = {
+  cta: 'Call to Arms',
+  coh: 'Chains of Honor',
+  hoto: 'Heart of the Oak',
+  botd: 'Breath of the Dying',
+  soj: 'Stone of Jordan',
+  anni: 'Annihilus',
+  wf: 'WindForce',
+  hoz: 'Herald of Zakarum',
+  wt: 'War Traveler',
+};
+
+// Tracked English names matching what the user typed. A full English (any case) or Chinese name, a trade
+// abbreviation, or a rune without " Rune" wins outright; otherwise every name whose English or Chinese
+// contains the text
 export function resolveItem(item: string, names: Record<string, string>): string[] {
   const lower = item.toLowerCase();
   const en = Object.keys(names);
   const exact =
     en.find((n) => n.toLowerCase() === lower) ??
+    en.find((n) => n === ALIASES[lower]) ??
     en.find((n) => names[n] === item) ??
     en.find((n) => n.toLowerCase() === `${lower} rune`);
   if (exact) return [exact];
