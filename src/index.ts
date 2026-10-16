@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { middleware, messagingApi, webhook } from '@line/bot-sdk';
-import { handlePriceCommand, HELP_TEXT } from './price-handler';
+import { handlePriceCommand, HELP_TEXT, isPriceCommand } from './price-handler';
 
 const app = express();
 
@@ -27,7 +27,7 @@ app.post('/webhook', lineMiddleware, async (req, res) => {
           });
           return;
         }
-        if (!text.startsWith('/price') && !text.startsWith('/p')) return;
+        if (!isPriceCommand(text)) return;
         const reply = await handlePriceCommand(text);
         await client.replyMessage({
           replyToken: (event as webhook.MessageEvent).replyToken!,

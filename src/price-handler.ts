@@ -1,4 +1,4 @@
-import { getLatestSnapshot, getTrackedItems, PriceSnapshot, Mode } from './firebase';
+import { getLatestSnapshot, getTrackedNames, PriceSnapshot, Mode } from './firebase';
 
 export interface ParsedCommand {
   item: string;
@@ -6,9 +6,15 @@ export interface ParsedCommand {
   ladder: boolean;
 }
 
+const COMMAND = /^\/(?:price|p)(?:\s+|$)/;
+
+// Only "/p" or "/price" followed by a space or the end, so "/ping" etc. are left alone
+export function isPriceCommand(text: string): boolean {
+  return COMMAND.test(text);
+}
+
 export function parseCommand(text: string): ParsedCommand | null {
-  const prefix = text.startsWith('/price') ? '/price' : '/p';
-  const rest = text.slice(prefix.length).trim();
+  const rest = text.replace(COMMAND, '').trim();
   if (!rest) return null;
 
   const tokens = rest.split(/\s+/);
@@ -17,9 +23,8 @@ export function parseCommand(text: string): ParsedCommand | null {
   const hc = lower.includes('hc');
 
   const itemTokens = tokens.filter((_, i) => lower[i] !== 'ladder' && lower[i] !== 'nonladder' && lower[i] !== 'hc');
-  let item = itemTokens.join(' ').trim();
+  const item = itemTokens.join(' ').trim();
   if (!item) return null;
-  if (itemTokens.length === 1) item = `${item} Rune`;
 
   return { item, mode: hc ? 'hc' : 'sc', ladder: !nonladder };
 }
@@ -67,19 +72,33 @@ export function formatResponse(
   ].join('\n');
 }
 
-export const HELP_TEXT = `📖 D2R Rune Price Bot 指令說明
+export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 
-/p <符文> — 查詢符文價格（預設 Ladder SC）
-/p <符文> hc — Hardcore
-/p <符文> nonladder — Non-Ladder
-/p <符文> hc nonladder — HC Non-Ladder
+/p <物品> — 查詢成交價（預設 Ladder SC）
+/p <物品> hc — Hardcore
+/p <物品> nonladder — Non-Ladder
+/p <物品> hc nonladder — HC Non-Ladder
+
+可查符文、符文之語、暗金裝備、咒符等追蹤物品。
+物品可用英文（不分大小寫）或中文名稱，符文可省略 Rune。
 
 範例：
   /p ber
-  /p JAH hc
-  /p Sur nonladder
+  /p 謎團 hc
+  /p shako nonladder`;
 
-符文名稱不分大小寫`;
+// Tracked English name for what the user typed: English (any case), Chinese, or a rune without " Rune".
+// Untracked names are returned as typed and simply find no price data
+export function resolveItem(item: string, names: Record<string, string>): string {
+  const lower = item.toLowerCase();
+  const en = Object.keys(names);
+  return (
+    en.find((n) => n.toLowerCase() === lower) ??
+    en.find((n) => names[n] === item) ??
+    en.find((n) => n.toLowerCase() === `${lower} rune`) ??
+    item
+  );
+}
 
 export async function handlePriceCommand(text: string): Promise<string> {
   const parsed = parseCommand(text);
@@ -87,7 +106,7 @@ export async function handlePriceCommand(text: string): Promise<string> {
     return '用法：/price <物品名稱> [hc] [nonladder]\n例如：/price ber rune';
   }
   try {
-    const resolved = (await getTrackedItems()).find((i) => i.toLowerCase() === parsed.item.toLowerCase()) ?? parsed.item;
+    const resolved = resolveItem(parsed.item, await getTrackedNames());
     const snapshot = await getLatestSnapshot(resolved, parsed.ladder, parsed.mode);
     return formatResponse(resolved, parsed.ladder, parsed.mode, snapshot);
   } catch {

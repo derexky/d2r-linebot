@@ -1,8 +1,8 @@
-import { parseCommand, formatResponse, handlePriceCommand } from '../src/price-handler';
+import { parseCommand, formatResponse, handlePriceCommand, isPriceCommand, resolveItem } from '../src/price-handler';
 import { PriceSnapshot } from '../src/firebase';
 
 jest.mock('../src/firebase');
-import { getLatestSnapshot, getTrackedItems } from '../src/firebase';
+import { getLatestSnapshot, getTrackedNames } from '../src/firebase';
 const mockGetLatest = getLatestSnapshot as jest.MockedFunction<typeof getLatestSnapshot>;
 
 describe('parseCommand', () => {
@@ -34,9 +34,45 @@ describe('parseCommand', () => {
     expect(parseCommand('/price hc nonladder')).toBeNull();
   });
 
-  it('single-word item gets " Rune" appended', () => {
-    expect(parseCommand('/price jah')).toEqual({ item: 'jah Rune', mode: 'sc', ladder: true });
-    expect(parseCommand('/p ber')).toEqual({ item: 'ber Rune', mode: 'sc', ladder: true });
+  it('keeps single-word items as typed (rune names are resolved later)', () => {
+    expect(parseCommand('/price jah')).toEqual({ item: 'jah', mode: 'sc', ladder: true });
+    expect(parseCommand('/p 謎團 hc')).toEqual({ item: '謎團', mode: 'hc', ladder: true });
+  });
+});
+
+describe('isPriceCommand', () => {
+  it('matches /p and /price followed by a space or the end', () => {
+    expect(isPriceCommand('/p ber')).toBe(true);
+    expect(isPriceCommand('/price ber')).toBe(true);
+    expect(isPriceCommand('/p')).toBe(true);
+  });
+
+  it('ignores other commands starting with /p', () => {
+    expect(isPriceCommand('/ping')).toBe(false);
+    expect(isPriceCommand('/pricey')).toBe(false);
+    expect(isPriceCommand('hi /p ber')).toBe(false);
+  });
+});
+
+describe('resolveItem', () => {
+  const names = { 'Ber Rune': '貝', Shako: '諧角之冠', Enigma: '謎團' };
+
+  it('matches English names case-insensitively', () => {
+    expect(resolveItem('shako', names)).toBe('Shako');
+    expect(resolveItem('BER RUNE', names)).toBe('Ber Rune');
+  });
+
+  it('matches Chinese names', () => {
+    expect(resolveItem('謎團', names)).toBe('Enigma');
+    expect(resolveItem('貝', names)).toBe('Ber Rune');
+  });
+
+  it('appends Rune for rune names', () => {
+    expect(resolveItem('ber', names)).toBe('Ber Rune');
+  });
+
+  it('returns untracked names as typed', () => {
+    expect(resolveItem('nope', names)).toBe('nope');
   });
 });
 
@@ -130,7 +166,7 @@ describe('formatResponse', () => {
 describe('handlePriceCommand', () => {
   beforeEach(() => {
     mockGetLatest.mockReset();
-    (getTrackedItems as jest.MockedFunction<typeof getTrackedItems>).mockResolvedValue(['Ber Rune']);
+    (getTrackedNames as jest.MockedFunction<typeof getTrackedNames>).mockResolvedValue({ 'Ber Rune': '貝' });
   });
 
   it('returns usage hint when no item name provided', async () => {

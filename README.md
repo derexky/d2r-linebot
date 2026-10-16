@@ -11,12 +11,14 @@
 ## 指令
 
 ```
-/p <物品>              查詢價格（預設 Ladder SC）
+/p <物品>              查詢價格（預設 Ladder SC），/price 亦可
 /p <物品> hc           Hardcore
 /p <物品> nonladder    Non-Ladder
 /p <物品> hc nonladder HC Non-Ladder
-/help                  顯示說明
+/help                  顯示說明，/h 亦可
 ```
+
+物品可用英文（不分大小寫）或中文名稱，符文可省略 `Rune`（`/p ber`、`/p 謎團`、`/p shako`）。
 
 ## 技術棧
 
@@ -41,4 +43,4 @@ gcloud run deploy d2r-linebot --source . --project=d2r-diablo --region=asia-east
 
 ## 注意
 
-追蹤物品清單由 d2r-traderie 管理（d2r-admin「TR 價格追蹤物品」頁），bot 透過 `/api/prices/items` 取得，不用另外同步。
+追蹤物品清單由 d2r-traderie 管理（d2r-admin「TR 價格追蹤物品」頁），bot 透過 `/api/prices/groups` 取得（含中文名稱），不用另外同步。
