@@ -13,8 +13,8 @@
 ```
 /p <物品>              查詢價格（預設 Ladder SC），/price 亦可
 /p <物品> hc           Hardcore
-/p <物品> nonladder    Non-Ladder
-/p <物品> hc nonladder HC Non-Ladder
+/p <物品> nl           Non-Ladder（nonladder 亦可）
+/p <物品> hc nl        HC Non-Ladder
 /help                  顯示說明，/h 亦可
 ```
 

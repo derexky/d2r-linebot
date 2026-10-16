@@ -19,10 +19,10 @@ export function parseCommand(text: string): ParsedCommand | null {
 
   const tokens = rest.split(/\s+/);
   const lower = tokens.map((t) => t.toLowerCase());
-  const nonladder = lower.includes('nonladder');
+  const nonladder = lower.includes('nonladder') || lower.includes('nl');
   const hc = lower.includes('hc');
 
-  const itemTokens = tokens.filter((_, i) => lower[i] !== 'ladder' && lower[i] !== 'nonladder' && lower[i] !== 'hc');
+  const itemTokens = tokens.filter((_, i) => lower[i] !== 'ladder' && lower[i] !== 'nonladder' && lower[i] !== 'nl' && lower[i] !== 'hc');
   const item = itemTokens.join(' ').trim();
   if (!item) return null;
 
@@ -76,8 +76,8 @@ export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 
 /p <物品> — 查詢成交價（預設 Ladder SC）
 /p <物品> hc — Hardcore
-/p <物品> nonladder — Non-Ladder
-/p <物品> hc nonladder — HC Non-Ladder
+/p <物品> nl — Non-Ladder（nonladder 亦可）
+/p <物品> hc nl — HC Non-Ladder
 
 可查符文、符文之語、暗金裝備、咒符等追蹤物品。
 物品可用英文（不分大小寫）或中文名稱，符文可省略 Rune。
@@ -85,7 +85,7 @@ export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 範例：
   /p ber
   /p 謎團 hc
-  /p shako nonladder`;
+  /p shako nl`;
 
 // Tracked English name for what the user typed: English (any case), Chinese, or a rune without " Rune".
 // Untracked names are returned as typed and simply find no price data
@@ -103,7 +103,7 @@ export function resolveItem(item: string, names: Record<string, string>): string
 export async function handlePriceCommand(text: string): Promise<string> {
   const parsed = parseCommand(text);
   if (!parsed) {
-    return '用法：/price <物品名稱> [hc] [nonladder]\n例如：/price ber rune';
+    return '用法：/price <物品名稱> [hc] [nl]\n例如：/price ber rune';
   }
   try {
     const resolved = resolveItem(parsed.item, await getTrackedNames());

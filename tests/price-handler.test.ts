@@ -18,6 +18,10 @@ describe('parseCommand', () => {
     expect(parseCommand('/price ber rune ladder')).toEqual({ item: 'ber rune', mode: 'sc', ladder: true });
   });
 
+  it('nl is short for nonladder', () => {
+    expect(parseCommand('/p ber NL hc')).toEqual({ item: 'ber', mode: 'hc', ladder: false });
+  });
+
   it('parses hc flag', () => {
     expect(parseCommand('/price ber rune hc')).toEqual({ item: 'ber rune', mode: 'hc', ladder: true });
   });
