@@ -22,18 +22,29 @@ export interface PriceSnapshot {
 const SNAPSHOT_CACHE = new Map<string, { data: PriceSnapshot | null; ts: number }>();
 const SNAPSHOT_TTL = 10 * 60 * 1000;
 
-// English → Chinese name of every tracked item with price data, managed in d2r-traderie (via d2r-admin)
-let trackedCache: { data: Record<string, string>; ts: number } | null = null;
+// Tracked items with price data by category, managed in d2r-traderie (via d2r-admin).
+// `zh` maps each English name in `items` to its Chinese name
+export interface TrackedGroup {
+  category: string;
+  items: string[];
+  zh: Record<string, string>;
+}
 
-export async function getTrackedNames(): Promise<Record<string, string>> {
+let trackedCache: { data: TrackedGroup[]; ts: number } | null = null;
+
+export async function getTrackedGroups(): Promise<TrackedGroup[]> {
   if (trackedCache && Date.now() - trackedCache.ts < SNAPSHOT_TTL) return trackedCache.data;
   const res = await fetch(`${TRADERIE_URL}/api/prices/groups`, {
     headers: { 'x-api-token': process.env.TRADERIE_TOKEN ?? '' },
   });
   if (!res.ok) throw new Error(`traderie groups: HTTP ${res.status}`);
-  const groups = (await res.json()) as { zh: Record<string, string> }[];
-  trackedCache = { data: Object.assign({}, ...groups.map((g) => g.zh)), ts: Date.now() };
+  trackedCache = { data: (await res.json()) as TrackedGroup[], ts: Date.now() };
   return trackedCache.data;
+}
+
+// English → Chinese name of every tracked item with price data
+export async function getTrackedNames(): Promise<Record<string, string>> {
+  return Object.assign({}, ...(await getTrackedGroups()).map((g) => g.zh));
 }
 
 export async function getLatestSnapshot(

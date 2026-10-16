@@ -1,4 +1,4 @@
-import { parseCommand, formatResponse, handlePriceCommand, isPriceCommand, resolveItem } from '../src/price-handler';
+import { parseCommand, formatResponse, formatList, handlePriceCommand, isPriceCommand, resolveItem } from '../src/price-handler';
 import { PriceSnapshot } from '../src/firebase';
 
 jest.mock('../src/firebase');
@@ -55,6 +55,16 @@ describe('isPriceCommand', () => {
     expect(isPriceCommand('/ping')).toBe(false);
     expect(isPriceCommand('/pricey')).toBe(false);
     expect(isPriceCommand('hi /p ber')).toBe(false);
+  });
+});
+
+describe('formatList', () => {
+  it('lists items by category as Chinese then English name', () => {
+    const result = formatList([
+      { category: '符文', items: ['Ber Rune', 'Jah Rune'], zh: { 'Ber Rune': '貝', 'Jah Rune': '喬' } },
+      { category: '暗金裝備', items: ['Shako'], zh: { Shako: '諧角之冠' } },
+    ]);
+    expect(result).toBe('📋 可查價物品（中文 / 英文皆可查）\n\n【符文】\n貝 Ber Rune\n喬 Jah Rune\n\n【暗金裝備】\n諧角之冠 Shako');
   });
 });
 

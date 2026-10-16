@@ -15,6 +15,7 @@
 /p <物品> hc           Hardcore
 /p <物品> nl           Non-Ladder（nonladder 亦可）
 /p <物品> hc nl        HC Non-Ladder
+/l                     列出可查價物品，/list 亦可
 /help                  顯示說明，/h 亦可
 ```
 

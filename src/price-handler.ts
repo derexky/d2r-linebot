@@ -1,4 +1,4 @@
-import { getLatestSnapshot, getTrackedNames, PriceSnapshot, Mode } from './firebase';
+import { getLatestSnapshot, getTrackedGroups, getTrackedNames, PriceSnapshot, Mode, TrackedGroup } from './firebase';
 
 export interface ParsedCommand {
   item: string;
@@ -74,7 +74,7 @@ export function formatResponse(
 
 export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 
-/p <物品> — 查詢成交價（預設 Ladder SC）
+/p <物品> — 查詢成交價（預設 Ladder SC，/price 亦可）
 /p <物品> hc — Hardcore
 /p <物品> nl — Non-Ladder（nonladder 亦可）
 /p <物品> hc nl — HC Non-Ladder
@@ -85,7 +85,27 @@ export const HELP_TEXT = `📖 D2R Price Bot 指令說明
 範例：
   /p ber
   /p 謎團 hc
-  /p shako nl`;
+  /p shako nl
+
+/l — 列出可查價物品（/list 亦可）
+/h — 顯示本說明（/help 亦可）`;
+
+// ponytail: one message (~1.1k chars for 58 items); split per category once it nears LINE's 5000-char limit
+export function formatList(groups: TrackedGroup[]): string {
+  return [
+    '📋 可查價物品（中文 / 英文皆可查）',
+    ...groups.map((g) => [`\n【${g.category}】`, ...g.items.map((n) => `${g.zh[n]} ${n}`)].join('\n')),
+  ].join('\n');
+}
+
+export async function handleListCommand(): Promise<string> {
+  try {
+    const groups = await getTrackedGroups();
+    return groups.length ? formatList(groups) : '目前沒有可查價物品';
+  } catch {
+    return '查詢失敗，請稍後再試';
+  }
+}
 
 // Tracked English name for what the user typed: English (any case), Chinese, or a rune without " Rune".
 // Untracked names are returned as typed and simply find no price data
