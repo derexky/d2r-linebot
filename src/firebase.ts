@@ -67,3 +67,12 @@ export async function getLatestSnapshot(
   SNAPSHOT_CACHE.set(key, { data, ts: Date.now() });
   return data;
 }
+
+export async function saveContact(contact: { id: string; type: 'user' | 'group' | 'room'; name: string | null }) {
+  const res = await fetch(`${TRADERIE_URL}/api/prices/contacts`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-token': process.env.TRADERIE_TOKEN ?? '' },
+    body: JSON.stringify(contact),
+  });
+  if (!res.ok) throw new Error(`traderie contacts: HTTP ${res.status}`);
+}

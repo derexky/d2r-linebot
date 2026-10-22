@@ -7,6 +7,7 @@
 - 接收 LINE Webhook，解析 `/p` 或 `/price` 指令
 - 從 d2r-traderie API 讀取價格快照並回傳格式化結果
 - 支援 Ladder / Non-Ladder、SC / HC 四種模式
+- 記錄互動過的好友／群組（id + 名稱）到 d2r-traderie 的 `line_contacts`，供低價通知選收件人
 
 ## 指令
 
