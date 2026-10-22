@@ -57,7 +57,7 @@ export function formatResponse(
 
   const lines = top.map((entry, i) => {
     const priceStr = entry.items
-      .map((it) => (it.quantity > 1 ? `${it.quantity}× ${it.name}` : it.name))
+      .map((it) => (it.quantity !== 1 ? `${it.quantity}× ${it.name}` : it.name))
       .join(' + ');
     return `#${i + 1}  ${priceStr} — ${entry.freq}次`;
   });
